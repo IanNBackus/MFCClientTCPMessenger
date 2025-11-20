@@ -66,7 +66,7 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	// TODO: Add extra initialization here
 	_clientController.Hwnd = m_hWnd;
 
-	UpdateMessageList(_T("Welcome Client, no connection currently established."));
+	UpdateMessageList(_T("Welcome Client"));
 
 	//set bold title fonts
 	CFont m_font;
@@ -125,16 +125,16 @@ void CMFCApplication1Dlg::OnSendClicked()
 		UpdateMessageList(_T("Connection must be made prior to sending..."));
 		return;
 	}
-
-	//send attempt
 	
 	//convert CString from UI into a format acceptable by CAsyncSocket.Send(), in this case a const char*
 	CT2A stringConverter(_messageEdit);
 	char* convertedTextData = stringConverter;
 
-	//_clientController.Send(convertedTextData, (int)strlen(convertedTextData));
+	//send over network connction
+	_clientController.Send(convertedTextData, (int)strlen(convertedTextData));
 	//_clientController.Send(CT2A(_messageEdit), strlen(CT2A(_messageEdit)));
 
+	//update ui
 	UpdateMessageList(_T("Me: ") + _messageEdit);
 
 	return;
@@ -150,7 +150,7 @@ void CMFCApplication1Dlg::OnConnectClicked()
 
 	//don't allow double connection
 	if (_clientController.IsConnected) {
-		UpdateMessageList(_T("Connection already made..."));
+		UpdateMessageList(_T("Connection already initiated..."));
 		return;
 	}
 
@@ -174,16 +174,18 @@ void CMFCApplication1Dlg::OnConnectClicked()
 
 		//check for valid conversion to UINT
 		if ((errno != 0) || (end == _port)) {
-			UpdateMessageList(_T("Entered port was invalid"));
+			UpdateMessageList(_T("Entered port was invalid..."));
 			return;
 		}
 
 		// Initiate a connection to the device
-		//_clientController.Connect(_ip, portConversion);
+		_clientController.Connect(_ip, portConversion);
+
+		//update ui
 		notification.Format(_T("Connecting to IP: %s, Port: %s"), (LPCTSTR)_ip, (LPCTSTR)_port);
 		UpdateMessageList(notification);
 
-		//keep track of connection
+		//keep track of connection attempt
 		_clientController.IsConnected = true;
 
 		return;
@@ -192,7 +194,7 @@ void CMFCApplication1Dlg::OnConnectClicked()
 	else
 	{
 
-		UpdateMessageList(_T("Socket creation failed"));
+		UpdateMessageList(_T("Socket creation failed..."));
 
 		return;
 
@@ -204,7 +206,25 @@ void CMFCApplication1Dlg::OnConnectClicked()
 LRESULT CMFCApplication1Dlg::OnClientSocketControllerReceive(WPARAM, LPARAM)
 {
 
+	char transmissionBuffer[256] = {0};
+	CString convertedTransmission;
 
+	//pull data from socket leaving 1 btye for a null terminator
+	int transmissionLength = _clientController.Receive(transmissionBuffer, sizeof(transmissionBuffer) - 1);
+
+	//convert into CString, assuming there's indeed anything to convert
+	if (transmissionLength > 0){
+
+		//add null terminator
+		transmissionBuffer[transmissionLength] = '\0';
+
+		//convert
+		convertedTransmission = transmissionBuffer;
+
+		//update ui
+		UpdateMessageList(_T("Server: %s", transmissionBuffer));
+
+	}
 
 	return 0;
 
@@ -214,7 +234,9 @@ LRESULT CMFCApplication1Dlg::OnClientSocketControllerReceive(WPARAM, LPARAM)
 LRESULT CMFCApplication1Dlg::OnClientSocketControllerDisconnect(WPARAM, LPARAM)
 {
 
+	UpdateMessageList(_T("Server Closed..."));
 
+	_clientController.Close();
 
 	return 0;
 
