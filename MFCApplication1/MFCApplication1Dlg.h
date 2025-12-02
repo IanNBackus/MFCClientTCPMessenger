@@ -38,6 +38,7 @@ class CMFCApplication1Dlg : public CDialogEx
 		afx_msg HCURSOR OnQueryDragIcon();
 
 		//event handlers for the clientsocketcontroller class to send to
+		afx_msg LRESULT OnSocketControllerConnect(WPARAM wParam, LPARAM lParam);
 		afx_msg LRESULT OnSocketControllerDisconnect(WPARAM wParam, LPARAM lParam);
 		afx_msg LRESULT OnSocketControllerReceive(WPARAM wParam, LPARAM lParam);
 

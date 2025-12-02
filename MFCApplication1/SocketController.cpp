@@ -8,7 +8,8 @@ SocketController::SocketController()
 
 	//we'll manipulate these in the dialog class
 	Hwnd = nullptr;
-	IsConnected = false;
+	//IsConnected = false;
+	ConnectionStatus = ConnectionStates::Disconnected;
 }
 
 SocketController::~SocketController()

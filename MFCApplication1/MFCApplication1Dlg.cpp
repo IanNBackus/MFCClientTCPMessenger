@@ -48,6 +48,7 @@ BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
 	//messages from socketcontroller class
 	ON_MESSAGE(WM_SOCKETCONTROLLER_ONCLOSE, OnSocketControllerDisconnect)
 	ON_MESSAGE(WM_SOCKETCONTROLLER_ONRECEIVE, OnSocketControllerReceive)
+	ON_MESSAGE(WM_SOCKETCONTROLLER_ONCONNECT, OnSocketControllerConnect)
 
 END_MESSAGE_MAP()
 
@@ -134,7 +135,7 @@ void CMFCApplication1Dlg::OnSendClicked()
 	UpdateData(TRUE);
 
 	//verify the connection prior to making a send attempt
-	if (!_clientController.IsConnected) {
+	if (_clientController.ConnectionStatus != SocketController::ConnectionStates::Connected) {
 		UpdateMessageList(_T("Connection must be made prior to sending..."));
 		return;
 	}
@@ -161,8 +162,8 @@ void CMFCApplication1Dlg::OnConnectClicked()
 	//perform data exchange
 	UpdateData(TRUE);
 
-	//don't allow double connection
-	if (_clientController.IsConnected) {
+	//don't allow connection attempts while already connected or while attempting connection
+	if (_clientController.ConnectionStatus != SocketController::ConnectionStates::Disconnected) {
 		UpdateMessageList(_T("Connection already initiated..."));
 		return;
 	}
@@ -210,7 +211,7 @@ void CMFCApplication1Dlg::OnConnectClicked()
 	UpdateMessageList(notification);
 
 	//keep track of connection attempt
-	_clientController.IsConnected = true;
+	_clientController.ConnectionStatus = SocketController::ConnectionStates::Connecting;
 
 	return;
 
@@ -244,6 +245,26 @@ LRESULT CMFCApplication1Dlg::OnSocketControllerReceive(WPARAM, LPARAM)
 
 }
 
+//handle the result of an attempted connection
+LRESULT CMFCApplication1Dlg::OnSocketControllerConnect(WPARAM wParam, LPARAM)
+{
+
+	if (wParam != 0) 
+	{
+		UpdateMessageList(_T("Connection Attempt Failed..."));
+		_clientController.ConnectionStatus = SocketController::ConnectionStates::Disconnected;
+		_clientController.ShutDown();
+		_clientController.Close();
+		return 0;
+	}
+
+	_clientController.ConnectionStatus = SocketController::ConnectionStates::Connected;
+	UpdateMessageList(_T("Connection Success..."));
+
+	return 0;
+
+}
+
 //Respond to a disconnect event from the clientsocketcontroller class
 LRESULT CMFCApplication1Dlg::OnSocketControllerDisconnect(WPARAM, LPARAM)
 {
@@ -252,7 +273,7 @@ LRESULT CMFCApplication1Dlg::OnSocketControllerDisconnect(WPARAM, LPARAM)
 
 	_clientController.ShutDown();
 	_clientController.Close();
-	_clientController.IsConnected = false;
+	_clientController.ConnectionStatus = SocketController::ConnectionStates::Disconnected;
 
 	return 0;
 

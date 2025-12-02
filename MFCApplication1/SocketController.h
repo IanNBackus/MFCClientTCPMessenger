@@ -12,13 +12,22 @@ class SocketController : public CAsyncSocket
 
 	public:
 
+		//enum for connection state
+		enum class ConnectionStates
+		{
+			Disconnected,
+			Connecting,
+			Connected
+		};
+
 		//constructor/destructor
 		SocketController();
 		virtual ~SocketController();
 
 		//variables
 		HWND Hwnd;
-		bool IsConnected;
+		ConnectionStates ConnectionStatus;
+		//bool IsConnected;
 
 		//methods
 		virtual void OnAccept(int nErrorCode);
